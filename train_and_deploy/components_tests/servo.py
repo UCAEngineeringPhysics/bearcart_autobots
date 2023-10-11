@@ -1,14 +1,19 @@
-from gpiozero import AngularServo
+from gpiozero import Servo
 from time import sleep
 
-servo = AngularServo(17, min_angle=0, max_angle=180)
+servo = Servo(17)
 
-for a in range(181):
-    if not a%45:
-        servo.angle = a
-        print(f"angle: {a}")
-        sleep(2)
+for _ in range(2):
+    servo.min()
+    print("min")
+    sleep(1)
+    servo.mid()
+    print("mid")
+    sleep(1)
+    servo.max()
+    print("max")
+    sleep(1)
+    servo.mid()
+    print("mid")
+    sleep(1)
 
-servo.angle = 90
-print("CENTER")
-sleep(2)

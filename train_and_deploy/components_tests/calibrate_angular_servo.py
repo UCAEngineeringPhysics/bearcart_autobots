@@ -10,11 +10,3 @@ for ang in range(-90, 91, 5):
     print (ang)
     sleep(.5)
 
-# while True:
-#     servo.angle = i
-#     print (i)
-#     sleep(1)
-#     i += 5
-#     if (i > 130):
-#         break
-
