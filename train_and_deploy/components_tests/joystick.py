@@ -13,5 +13,16 @@ js = joystick.Joystick(0)
 while True:
     for e in event.get():
         if e.type == JOYAXISMOTION:
-            print(e)
+            ax0 = js.get_axis(0)
+            ax1 = js.get_axis(1)
+            ax2 = js.get_axis(2)
+            ax3 = js.get_axis(3)
+            ax4 = js.get_axis(4)
+            ax5 = js.get_axis(5)
+            print(f"axis 0: {ax0}")
+            print(f"axis 1: {ax1}")
+            print(f"axis 2: {ax2}")
+            print(f"axis 3: {ax3}")
+            print(f"axis 4: {ax4}")
+            print(f"axis 5: {ax5}")
 
