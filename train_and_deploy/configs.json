@@ -1,0 +1,8 @@
+{
+    "servo_pin": 17,
+    "servo_min_angle": 90,
+    "servo_max_angle": -90,
+    "steer_center": 30,
+    "steer_range": 60,
+    "throttle_limit": 0.5
+}

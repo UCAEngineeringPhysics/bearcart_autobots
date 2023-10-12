@@ -9,81 +9,103 @@
 import sys
 import os
 import cv2 as cv
-#from adafruit_servokit import ServoKit
-import motor
 import pygame
 import time
-from gpiozero import LED, AngularServo
+from gpiozero import LED, AngularServo, PhaseEnableMotor
 import json
 
 
 from time import time
 
 # SETUP
+
+# init variables
+ax0_val, ax4_val = 0., 0.  # left joy med-lat, right joy ant-post
+LED_STATUS = False
+
 # load configs
-config_path = os.path.join(sys.path[0], "config.json")
-f = open(config_path)
-data = json.load(f)
-steering_trim = data['steering_trim']
-throttle_lim = data['throttle_lim']
-# init servo controller
-kit = AngularServo(17, min_angle= 0, max_angle=180)
+config_path = os.path.join(sys.path[0], "configs.json")
+params_file = open(config_path)
+params = json.load(params_file)
+STEER_CENTER = params['steer_center']
+STEER_RANGE = params['steer_range']
+THROTTLE_LIMIT = params['throttle_limit']
+
+# init head and tail light
+head_led = LED(16)
+tail_led = LED(12)
+
+# init servo 
+steer = AngularServo(
+    pin=params['servo_pin'], 
+    initial_angle=params['steer_center'],
+    min_angle=params['servo_min_angle'], 
+    max_angle=params['servo_max_angle'], 
+)
+steer.angle = STEER_CENTER #Starting angle
+
+# init motor 
+throttle = PhaseEnableMotor(phase=19, enable=26)
 
 # init controller
 pygame.display.init()
 pygame.joystick.init()
 js = pygame.joystick.Joystick(0)
-# init variables
-throttle, steer = 0., 0.
-head_led = LED(16)
-tail_led = LED(12)
-LED_STATUS = False
+
 # init camera
 cap = cv.VideoCapture(0)
-cap.set(cv.CAP_PROP_FPS, 20)
+cap.set(cv.CAP_PROP_FPS, 60)
 for i in reversed(range(60)):
     if not i % 20:
-        print(i/20)
+        print(i/20)  # count down 3, 2, 1 sec
     ret, frame = cap.read()
+
 # init timer
 start_stamp = time()
 frame_counts = 0
 ave_frame_rate = 0.
 
 try:
-    kit.angle = 0 #Starting angle
-
     while True:
-        ret, frame = cap.read()
-        for e in pygame.event.get():
-            if e.type == pygame.JOYAXISMOTION:
-                throttle = -round((js.get_axis(1)), 2)  # throttle input: -1: max forward, 1: max backward
-                steer = -round((js.get_axis(3)), 2)  # steer_input: -1: left, 1: right
-            elif e.type == pygame.JOYBUTTONDOWN:
-                if pygame.joystick.Joystick(0).get_button(0):
-                    LED_STATUS = not LED_STATUS
-                    head_led.toggle()
-                    tail_led.toggle()
-        motor.drive(throttle * throttle_lim)  # apply throttle limit
-        ang = 90 * (1 + steer) + steering_trim
-        if ang > 180:
-            ang = 180
-        elif ang < 0:
-            ang = 0
-        kit.angle = ang
-        action = [steer, throttle]
-        print(f"action: {action}")
+        ret, frame = cap.read()  # read image
+        # for e in pygame.event.get():  # read controller input
+        #     if e.type == pygame.JOYAXISMOTION:
+        #         ax0_val = round((js.get_axis(0)), 2)  # keep 2 decimals
+        #         ax4_val = round((js.get_axis(4)), 2)  
+        #     elif e.type == pygame.JOYBUTTONDOWN:
+        #         if pygame.joystick.Joystick(0).get_button(0):
+        #             LED_STATUS = not LED_STATUS
+        #             head_led.toggle()
+        #             tail_led.toggle()
+        # # Calaculate steering and throttle value
+        # act_st = ax0_val  # steer_input: -1: left, 1: right
+        # act_th = -ax4_val  # throttle input: -1: max forward, 1: max backward
+        # # Map axis value to angle: steering_center + act_st * steering_range
+        # ang = STEER_CENTER + act_st * STEER_RANGE
+        # # Drive servo and motor
+        # steer.angle = ang
+        # if act_th >= 0:
+        #     throttle.forward(min(act_th, THROTTLE_LIMIT))
+        # else:
+        #     throttle.backward(min(-act_th, THROTTLE_LIMIT))
+        # # Log action
+        # action = [act_st, act_th]
+        # print(f"action: {action}")
         frame_counts += 1
-        duration_since_start = time() - start_stamp
-        ave_frame_rate = frame_counts / duration_since_start
-        # print(f"frame rate: {ave_frame_rate}")
+        since_start = time() - start_stamp
+        frame_rate = frame_counts / since_start
+        print(f"frame rate: {frame_rate}")
         if cv.waitKey(1)==ord('q'):
-            motor.kill()
+            throttle.stop()
+            throttle.close()
+            steer.close()
             cv.destroyAllWindows()
             pygame.quit()
             sys.exit()
 except KeyboardInterrupt:
-    motor.kill()
+    throttle.stop()
+    throttle.close()
+    steer.close()
     cv.destroyAllWindows()
     pygame.quit()
     sys.exit()
