@@ -1,11 +1,3 @@
-##################################################################
-# Program Name: teleop_js.py
-# Contributors: 
-# 
-#  
-###################################################################
-
-#!/usr/bin/python3
 import sys
 import os
 import cv2 as cv
@@ -13,29 +5,24 @@ import pygame
 import time
 from gpiozero import LED, AngularServo, PhaseEnableMotor
 import json
-
-
 from time import time
 
-# SETUP
 
-# init variables
+# SETUP
+# Init variables
 ax0_val, ax4_val = 0., 0.  # left joy med-lat, right joy ant-post
 LED_STATUS = False
-
-# load configs
+# Load configs
 config_path = os.path.join(sys.path[0], "configs.json")
 params_file = open(config_path)
 params = json.load(params_file)
 STEER_CENTER = params['steer_center']
 STEER_RANGE = params['steer_range']
 THROTTLE_LIMIT = params['throttle_limit']
-
-# init head and tail light
+# Init head and tail light
 head_led = LED(16)
 tail_led = LED(12)
-
-# init servo 
+# Init servo 
 steer = AngularServo(
     pin=params['servo_pin'], 
     initial_angle=params['steer_center'],
@@ -43,28 +30,25 @@ steer = AngularServo(
     max_angle=params['servo_max_angle'], 
 )
 steer.angle = STEER_CENTER #Starting angle
-
-# init motor 
+# Init motor 
 throttle = PhaseEnableMotor(phase=19, enable=26)
-
-# init controller
+# Init controller
 pygame.display.init()
 pygame.joystick.init()
 js = pygame.joystick.Joystick(0)
-
-# init camera
+# Init camera
 cap = cv.VideoCapture(0)
 cap.set(cv.CAP_PROP_FPS, 20)
 for i in reversed(range(60)):
     if not i % 20:
         print(i/20)  # count down 3, 2, 1 sec
     ret, frame = cap.read()
-
-# init timer
+# Init timer
 start_stamp = time()
 frame_counts = 0
 ave_frame_rate = 0.
 
+# MAIN LOOP
 try:
     while True:
         ret, frame = cap.read()  # read image
@@ -91,10 +75,12 @@ try:
         # Log action
         action = [act_st, act_th]
         print(f"action: {action}")
+        # Log frame rate
         frame_counts += 1
         since_start = time() - start_stamp
         frame_rate = frame_counts / since_start
         print(f"frame rate: {frame_rate}")
+        # Press "q" to quit
         if cv.waitKey(1)==ord('q'):
             throttle.stop()
             throttle.close()
@@ -102,6 +88,7 @@ try:
             cv.destroyAllWindows()
             pygame.quit()
             sys.exit()
+# Take care terminate signal (Ctrl-c)
 except KeyboardInterrupt:
     throttle.stop()
     throttle.close()
