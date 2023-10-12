@@ -67,10 +67,10 @@ class BearCartDataset(Dataset):
     Customize dataset class
     """
 
-    def __init__(self, annotation_path, image_dir, transform=transforms.ToTensor()):
+    def __init__(self, annotation_path, image_dir):
         self.img_notes = pd.read_csv(annotation_path, header=None)
         self.img_dir = image_dir
-        self.transform = transform
+        self.transform = transforms.ToTensor()
 
     def __len__(self):
         return len(self.img_notes)
@@ -78,10 +78,11 @@ class BearCartDataset(Dataset):
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.img_notes.iloc[idx, 0])
         img_arr = cv.imread(img_path, cv.IMREAD_COLOR)
-        steering = self.img_notes.iloc[idx, 1].astype(np.float32)
-        throttle = self.img_notes.iloc[idx, 2].astype(np.float32)
-        image_tensor = transforms.ToTensor(img_arr).float
-        return image_tensor, steering, throttle
+        img_tensor = self.transform(img_arr)
+        feature_image = img_tensor.float()
+        target_steer = self.img_notes.iloc[idx, 1].astype(np.float32)
+        target_throttle = self.img_notes.iloc[idx, 2].astype(np.float32)
+        return feature_image, target_steer, target_throttle
 
 
 # SETUP
