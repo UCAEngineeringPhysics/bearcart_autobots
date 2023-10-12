@@ -92,19 +92,16 @@ print(f"Using {DEVICE} device")
 data_dir = os.path.join(sys.path[0], "data", "2023_10_12_14_52")
 annotation_path = os.path.join(data_dir, "annotations.csv")
 image_dir = os.path.join(data_dir, "images/")
-dataset = BearCartDataset(annotation_path, image_dir)
-print("data length: ", len(dataset))
-
-# # Define the size for train and test data
-# train_data_len = len(collected_data)
-# train_data_size = round(train_data_len*0.9)
-# test_data_size = train_data_len - train_data_size 
-# print("len and train and test: ", train_data_len, " ", train_data_size, " ", test_data_size)
-#
-# # Load the datset (split into train and test)
-# train_data, test_data = random_split(collected_data, [train_data_size, test_data_size])
-# train_dataloader = DataLoader(train_data, batch_size=125)
-# test_dataloader = DataLoader(test_data, batch_size=125)
+dataset_all = BearCartDataset(annotation_path, image_dir)
+print("dataset total number of instances: ", len(dataset_all))
+all_size = len(dataset_all)
+train_size = round(all_size*0.9)
+test_size = all_size - train_size 
+print(f"train size: {train_size}, test size: {test_size}")
+# Load the datset (split into train and test)
+train_data, test_data = random_split(dataset_all, [train_size, test_size])
+dataloader_train = DataLoader(train_data, batch_size=128)
+dataloader_test = DataLoader(test_data, batch_size=128)
 #
 #
 # # Initialize the model
