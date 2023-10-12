@@ -58,9 +58,9 @@ if not os.path.exists(image_dir):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
-label_path = os.path.join(
+annotation_path = os.path.join(
     os.path.dirname(os.path.dirname(image_dir)), 
-    'labels.csv'
+    'annotations.csv'
 )
 # Init timer
 start_stamp = time()
@@ -98,12 +98,12 @@ try:
         action = [act_st, act_th]
         print(f"action: {action}")
         if is_recording:
-            frame = cv.resize(frame, (120, 160))
-            cv.imwrite(image_dir + str(frame_counts))
-            label = [str(frame_counts) + '.jpg'] + action
-            with open(label_path, 'a+', newline='') as f:
+            img_arr = cv.resize(frame, (120, 160))
+            cv.imwrite(image_dir + str(frame_counts) + '.jpg', img_arr)
+            note = [str(frame_counts) + '.jpg'] + action
+            with open(annotation_path, 'a+', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(label)
+                writer.writerow(note)
         # Monitor frame rate, uncomment following 4 lines
         since_start = time() - start_stamp
         frame_rate = frame_counts / since_start
