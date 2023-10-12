@@ -54,7 +54,7 @@ js = pygame.joystick.Joystick(0)
 
 # init camera
 cap = cv.VideoCapture(0)
-cap.set(cv.CAP_PROP_FPS, 60)
+cap.set(cv.CAP_PROP_FPS, 20)
 for i in reversed(range(60)):
     if not i % 20:
         print(i/20)  # count down 3, 2, 1 sec
@@ -68,29 +68,29 @@ ave_frame_rate = 0.
 try:
     while True:
         ret, frame = cap.read()  # read image
-        # for e in pygame.event.get():  # read controller input
-        #     if e.type == pygame.JOYAXISMOTION:
-        #         ax0_val = round((js.get_axis(0)), 2)  # keep 2 decimals
-        #         ax4_val = round((js.get_axis(4)), 2)  
-        #     elif e.type == pygame.JOYBUTTONDOWN:
-        #         if pygame.joystick.Joystick(0).get_button(0):
-        #             LED_STATUS = not LED_STATUS
-        #             head_led.toggle()
-        #             tail_led.toggle()
-        # # Calaculate steering and throttle value
-        # act_st = ax0_val  # steer_input: -1: left, 1: right
-        # act_th = -ax4_val  # throttle input: -1: max forward, 1: max backward
-        # # Map axis value to angle: steering_center + act_st * steering_range
-        # ang = STEER_CENTER + act_st * STEER_RANGE
-        # # Drive servo and motor
-        # steer.angle = ang
-        # if act_th >= 0:
-        #     throttle.forward(min(act_th, THROTTLE_LIMIT))
-        # else:
-        #     throttle.backward(min(-act_th, THROTTLE_LIMIT))
-        # # Log action
-        # action = [act_st, act_th]
-        # print(f"action: {action}")
+        for e in pygame.event.get():  # read controller input
+            if e.type == pygame.JOYAXISMOTION:
+                ax0_val = round((js.get_axis(0)), 2)  # keep 2 decimals
+                ax4_val = round((js.get_axis(4)), 2)  
+            elif e.type == pygame.JOYBUTTONDOWN:
+                if pygame.joystick.Joystick(0).get_button(0):
+                    LED_STATUS = not LED_STATUS
+                    head_led.toggle()
+                    tail_led.toggle()
+        # Calaculate steering and throttle value
+        act_st = ax0_val  # steer_input: -1: left, 1: right
+        act_th = -ax4_val  # throttle input: -1: max forward, 1: max backward
+        # Map axis value to angle: steering_center + act_st * steering_range
+        ang = STEER_CENTER + act_st * STEER_RANGE
+        # Drive servo and motor
+        steer.angle = ang
+        if act_th >= 0:
+            throttle.forward(min(act_th, THROTTLE_LIMIT))
+        else:
+            throttle.backward(min(-act_th, THROTTLE_LIMIT))
+        # Log action
+        action = [act_st, act_th]
+        print(f"action: {action}")
         frame_counts += 1
         since_start = time() - start_stamp
         frame_rate = frame_counts / since_start
