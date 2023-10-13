@@ -10,34 +10,6 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 import cnn_network
 import cv2 as cv
-
-
-
-
-def train(dataloader, model, loss_fn, optimizer):
-    
-    num_samples = len(dataloader.dataset)
-    model.train()
-    epoch_loss = 0.0
-
-    for batch, (image, steering, throttle) in enumerate(dataloader):
-        # Combine steering and throttle into one tensor (2 columns, X rows)
-        target = torch.stack((steering, throttle), -1) 
-        X, y = image.to(DEVICE), target.to(DEVICE)
-
-        # Compute prediction error
-        pred = model(X)  # forward propagation
-        batch_loss = loss_fn(pred, y)  # compute loss
-        optimizer.zero_grad()  # zero previous gradient
-        batch_loss.backward()  # back propagatin
-        optimizer.step()  # update parameters
-        
-        batch_loss, sample_count = batch_loss.item(), (batch + 1) * len(X)
-        epoch_loss = (epoch_loss*batch + batch_loss) / (batch + 1)
-        print(f"loss: {batch_loss:>7f} [{sample_count:>5d}/{size:>5d}]")
-        
-    return epoch_loss
-
         
 
 def test(dataloader, model, loss_fn):
@@ -85,6 +57,7 @@ class BearCartDataset(Dataset):
         return feature_image, target_steer, target_throttle
 
 
+
 # SETUP
 # Designate processing unit for CNN training
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -103,31 +76,39 @@ print(f"train size: {train_size}, test size: {test_size}")
 train_data, test_data = random_split(dataset_all, [train_size, test_size])
 dataloader_train = DataLoader(train_data, batch_size=128)
 dataloader_test = DataLoader(test_data, batch_size=128)
-#
-#
-# # Initialize the model
-# # Models that train well:
-# #     lr = 0.001, epochs = 10
-# #     lr = 0.0001, epochs = 15 (epochs = 20 might also work)
-# model = cnn_network.DonkeyNet().to(DEVICE) # choose the architecture class from cnn_network.py
-# loss_fn = nn.MSELoss()
-# optimizer = torch.optim.Adam(model.parameters(), lr= 0.001)
-# epochs = 15
-#
-# # Optimize the model
-# train_loss = []
-# test_loss = []
-# for t in range(epochs):
-#     print(f"Epoch {t+1}\n-------------------------------")
-#     training_loss = train(train_dataloader, model, loss_fn, optimizer)
-#     testing_loss = test(test_dataloader, model, loss_fn)
-#     print("average training loss: ", training_loss)
-#     print("average testing loss: ", testing_loss)
-#     # save values
-#     train_loss.append(training_loss)
-#     test_loss.append(testing_loss)   
-#
-# print(f"Optimize Done!")
+# Instantiate model
+autopilot = cnn_network.DonkeyNet().to(DEVICE)
+# Hyper-parameter
+learning_rate = 3e-4
+num_epochs = 2
+loss_fn = nn.MSELoss()
+optimizer = torch.optim.Adam(autopilot.parameters(), lr=learning_rate)
+# Optimize model
+losses_train, losses_test = [], []
+for ep in range(num_epochs):
+    # Train
+    print(f"Epoch {ep+1}\n-------------------------------")
+    autopilot.train()
+    num_used_samples = 0
+    ep_loss_train = 0.
+    for b, (img_tr, st_tr, th_tr) in enumerate(dataloader_train):
+        targ_tr = torch.stack((st_tr, th_tr), dim=-1)
+        feature_train, target_train = img_tr.to(DEVICE), targ_tr.to(DEVICE)
+        pred_train = autopilot(feature_train)
+        batch_loss_train = loss_fn(pred_train, target_train)
+        optimizer.zero_grad()  # zero previous gradient
+        batch_loss_train.backward()  # back propagation
+        optimizer.step()  # update params
+        num_used_samples = (b + 1) * target_train.shape[0]
+        print(f"batch loss: {batch_loss_train.item()} [{num_used_samples}/{train_size}]")
+        ep_loss_train = (ep_loss_train * b + batch_loss_train.item()) / (b + 1)
+    losses_train.append(ep_loss_train)
+    # Eval
+    autopilot.eval()
+
+    print(f"epoch {ep + 1} loss: {ep_loss_train}\n")
+
+print(f"Optimize Done!")
 #
 #
 # #print("final test lost: ", test_loss[-1])
