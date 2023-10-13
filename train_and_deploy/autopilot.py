@@ -1,101 +1,116 @@
-
-# Deploy trained neural network for self driving 
-
-
-#!/usr/bin/python3
 import sys
 import os
-import cv2 as cv
-from gpiozero import LED, AngularServo
-import motor
-import json
-
-from time import time
 import torch
-import torch.nn as nn
 from torchvision import transforms
 import cnn_network
+import cv2 as cv
+import pygame
+import time
+from gpiozero import LED, AngularServo, PhaseEnableMotor
+import json
+from time import time
 
 
 # SETUP
-# load configs
-config_path = os.path.join(sys.path[0], "config.json")
-f = open(config_path)
-data = json.load(f)
-steering_trim = -1 * data['steering_trim']
-throttle_lim = data['throttle_lim']
-# init servo controller
-kit = AngularServo(17, min_angle= 0, max_angle=180)
-# init LEDs
-head_led = LED(16)
-tail_led = LED(12)
-
-model_path = os.path.join(sys.path[0], 'models', 'DonkeyNet_15_epochs_lr_1e_3.pth')
+# Init variables
+act_st, act_th = 0., 0.
+# Load autopilot model
+model_datetime = '2023_10_12_14_52'
+model_path = os.path.join(
+    sys.path[0], 
+    'data', 
+    model_datetime, 
+    'DonkeyNet-15epochs-0.0001lr.pth'
+)
+autopilot = cnn_network.DonkeyNet()
+autopilot.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 to_tensor = transforms.ToTensor()
-model = cnn_network.DonkeyNet()
-model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-# init variables
-throttle, steer = 0., 0.
-is_recording = False
-frame_counts = 0
-# init camera
+# Load configs
+config_path = os.path.join(sys.path[0], "configs.json")
+params_file = open(config_path)
+params = json.load(params_file)
+STEER_CENTER = params['steer_center']
+STEER_RANGE = params['steer_range']
+THROTTLE_LIMIT = params['throttle_limit']
+# Init head and tail light
+head_led = LED(16)  # TODO
+tail_led = LED(12)
+# Init servo 
+steer = AngularServo(
+    pin=params['servo_pin'], 
+    initial_angle=params['steer_center'],
+    min_angle=params['servo_min_angle'], 
+    max_angle=params['servo_max_angle'], 
+)
+steer.angle = STEER_CENTER #Starting angle
+# Init motor 
+throttle = PhaseEnableMotor(phase=19, enable=26)
+# Init controller
+pygame.display.init()
+pygame.joystick.init()
+js = pygame.joystick.Joystick(0)
+# Init camera
 cap = cv.VideoCapture(0)
 cap.set(cv.CAP_PROP_FPS, 20)
-for i in reversed(range(60)):  # warm up camera
+for i in reversed(range(60)):
     if not i % 20:
-        print(i/20)
+        print(i/20)  # count down 3, 2, 1 sec
     ret, frame = cap.read()
-head_led.on()
-tail_led.on()
-# init timer, uncomment if you are cuious about frame rate
+# Init timer
 start_stamp = time()
+frame_counts = 0
 ave_frame_rate = 0.
 
-
-# MAIN
+# MAIN LOOP
 try:
     while True:
-        ret, frame = cap.read()
-        if frame is not None:
+        ret, frame = cap.read()  # read image
+        if ret:
             frame_counts += 1
-        else:
-            motor.kill()
-            head_led.off()
-            tail_led.off()
-            cv.destroyAllWindows()
-            sys.exit()
+        for e in pygame.event.get():  # read controller input
+            if e.type == pygame.JOYBUTTONDOWN:
+                if pygame.joystick.Joystick(0).get_button(0):
+                    # throttle.stop()
+                    # throttle.close()
+                    # steer.close()
+                    # cv.destroyAllWindows()
+                    # pygame.quit()
+                    print("E-STOP PRESSED. TERMINATE")
+                    sys.exit()
         # predict steer and throttle
         image = cv.resize(frame, (120, 160))
         img_tensor = to_tensor(image)
-        pred_steer, pred_throttle = model(img_tensor[None, :]).squeeze()
-        steer = float(pred_steer)
-        throttle = float(pred_throttle)
-        if throttle >= 1:  # predicted throttle may over the limit
-            throttle = .999
-        elif throttle <= -1:
-            throttle = -.999
-        motor.drive(abs(throttle * throttle_lim))  # apply throttle limit
-        ang = 90 * (1 + steer) + steering_trim
-        if ang > 180:
-            ang = 180
-        elif ang < 0:
-            ang = 0
-        kit.angle = ang
-        action = [steer, throttle]
+        st_pred, th_pred = autopilot(img_tensor[None, :]).squeeze()
+        act_st = float(st_pred)
+        act_th = float(th_pred)
+        # Map axis value to angle: steering_center + act_st * steering_range
+        ang = STEER_CENTER + act_st * STEER_RANGE
+        # Drive servo and motor
+        steer.angle = ang
+        if act_th >= 0:
+            throttle.forward(min(act_th, THROTTLE_LIMIT))
+        else:
+            throttle.backward(min(-act_th, THROTTLE_LIMIT))
+        # Log data
+        action = [act_st, act_th]
         print(f"action: {action}")
-        # monitor frame rate
-        duration_since_start = time() - start_stamp
-        ave_frame_rate = frame_counts / duration_since_start
-        #print(f"frame rate: {ave_frame_rate}")
+        # Monitor frame rate, uncomment following 3 lines
+        since_start = time() - start_stamp
+        frame_rate = frame_counts / since_start
+        print(f"frame rate: {frame_rate}")
+        # Press "q" to quit
         if cv.waitKey(1)==ord('q'):
-            motor.kill()
+            throttle.stop()
+            throttle.close()
+            steer.close()
             cv.destroyAllWindows()
-            head_led.off()
-            tail_led.off()
+            pygame.quit()
             sys.exit()
+# Take care terminate signal (Ctrl-c)
 except KeyboardInterrupt:
-    motor.kill()
-    head_led.off()
-    tail_led.off()
+    throttle.stop()
+    throttle.close()
+    steer.close()
     cv.destroyAllWindows()
+    pygame.quit()
     sys.exit()
