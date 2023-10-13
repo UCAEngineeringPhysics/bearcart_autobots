@@ -1,5 +1,6 @@
 import sys
 import os
+import numpy as np
 import torch
 from torchvision import transforms
 import cnn_network
@@ -70,21 +71,22 @@ try:
         for e in pygame.event.get():  # read controller input
             if e.type == pygame.JOYBUTTONDOWN:
                 if pygame.joystick.Joystick(0).get_button(0):
-                    # throttle.stop()
-                    # throttle.close()
-                    # steer.close()
-                    # cv.destroyAllWindows()
-                    # pygame.quit()
+                    throttle.stop()
+                    throttle.close()
+                    steer.close()
+                    cv.destroyAllWindows()
+                    pygame.quit()
                     print("E-STOP PRESSED. TERMINATE")
                     sys.exit()
         # predict steer and throttle
         image = cv.resize(frame, (120, 160))
         img_tensor = to_tensor(image)
         st_pred, th_pred = autopilot(img_tensor[None, :]).squeeze()
-        act_st = float(st_pred)
-        act_th = float(th_pred)
+        act_st = st_pred.detach().numpy()
+        act_th = np.clip(th_pred.detach().numpy(), -1, 1)
         # Map axis value to angle: steering_center + act_st * steering_range
         ang = STEER_CENTER + act_st * STEER_RANGE
+        ang = np.clip(ang, -90, 90)
         # Drive servo and motor
         steer.angle = ang
         if act_th >= 0:

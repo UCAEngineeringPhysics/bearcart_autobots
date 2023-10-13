@@ -1,5 +1,6 @@
 import sys
 import os
+import numpy as np
 import cv2 as cv
 import pygame
 import time
@@ -64,10 +65,13 @@ try:
         # Calaculate steering and throttle value
         act_st = ax0_val  # steer_input: -1: left, 1: right
         act_th = -ax4_val  # throttle input: -1: max forward, 1: max backward
+        act_th = np.clip(act_th, -1, 1)
         # Map axis value to angle: steering_center + act_st * steering_range
         ang = STEER_CENTER + act_st * STEER_RANGE
+        ang = np.clip(ang, -90, 90)
         # Drive servo and motor
         steer.angle = ang
+
         if act_th >= 0:
             throttle.forward(min(act_th, THROTTLE_LIMIT))
         else:
