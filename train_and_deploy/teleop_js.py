@@ -21,8 +21,8 @@ STEER_CENTER = params['steer_center']
 STEER_RANGE = params['steer_range']
 THROTTLE_LIMIT = params['throttle_limit']
 # Init head and tail light
-head_led = LED(16)
-tail_led = LED(12)
+head_led = LED(12)
+tail_led = LED(16)
 # Init servo 
 steer = AngularServo(
     pin=params['servo_pin'], 
@@ -53,13 +53,21 @@ ave_frame_rate = 0.
 try:
     while True:
         ret, frame = cap.read()  # read image
+        cv.imshow('camera', cv.resize(frame, (200, 180)))
         for e in pygame.event.get():  # read controller input
             if e.type == pygame.JOYAXISMOTION:
                 ax0_val = round((js.get_axis(0)), 2)  # keep 2 decimals
                 ax4_val = round((js.get_axis(4)), 2)  
             elif e.type == pygame.JOYBUTTONDOWN:
-                if pygame.joystick.Joystick(0).get_button(0):
-                    LED_STATUS = not LED_STATUS
+                if js.get_button(0):
+                    throttle.stop()
+                    throttle.close()
+                    steer.close()
+                    cv.destroyAllWindows()
+                    pygame.quit()
+                    print("E-STOP PRESSED. TERMINATE")
+                    sys.exit()
+                elif js.get_button(5):
                     head_led.toggle()
                     tail_led.toggle()
         # Calaculate steering and throttle value

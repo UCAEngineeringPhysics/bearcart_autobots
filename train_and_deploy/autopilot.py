@@ -16,7 +16,7 @@ from time import time
 # Init variables
 act_st, act_th = 0., 0.
 # Load autopilot model
-model_datetime = '2023_10_12_14_52'
+model_datetime = '2023_10_17_13_44'
 model_path = os.path.join(
     sys.path[0], 
     'data', 
@@ -70,7 +70,7 @@ try:
             frame_counts += 1
         for e in pygame.event.get():  # read controller input
             if e.type == pygame.JOYBUTTONDOWN:
-                if pygame.joystick.Joystick(0).get_button(0):
+                if js.get_button(0):
                     throttle.stop()
                     throttle.close()
                     steer.close()

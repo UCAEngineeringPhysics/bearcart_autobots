@@ -79,7 +79,15 @@ try:
                 ax0_val = round((js.get_axis(0)), 2)  # keep 2 decimals
                 ax4_val = round((js.get_axis(4)), 2)  
             elif e.type == pygame.JOYBUTTONDOWN:
-                if pygame.joystick.Joystick(0).get_button(0):
+                if js.get_button(0):
+                    throttle.stop()
+                    throttle.close()
+                    steer.close()
+                    cv.destroyAllWindows()
+                    pygame.quit()
+                    print("E-STOP PRESSED. TERMINATE")
+                    sys.exit()
+                elif js.get_button(5):
                     is_recording = not is_recording
                     print(f"Recording data? {is_recording}")
                     head_led.toggle()
