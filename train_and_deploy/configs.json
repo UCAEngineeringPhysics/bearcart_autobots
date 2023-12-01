@@ -4,5 +4,5 @@
     "servo_max_angle": -90,
     "steer_center": 30,
     "steer_range": 60,
-    "throttle_limit": 0.5
+    "throttle_limit": 0.3
 }

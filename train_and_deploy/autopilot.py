@@ -16,7 +16,7 @@ from time import time
 # Init variables
 act_st, act_th = 0., 0.
 # Load autopilot model
-model_datetime = '2023_10_17_13_44'
+model_datetime = '2023_12_01_14_31'
 model_path = os.path.join(
     sys.path[0], 
     'data', 

@@ -53,7 +53,7 @@ ave_frame_rate = 0.
 try:
     while True:
         ret, frame = cap.read()  # read image
-        cv.imshow('camera', cv.resize(frame, (200, 180)))
+        # cv.imshow('camera', cv.resize(frame, (200, 180)))
         for e in pygame.event.get():  # read controller input
             if e.type == pygame.JOYAXISMOTION:
                 ax0_val = round((js.get_axis(0)), 2)  # keep 2 decimals
