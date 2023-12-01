@@ -41,13 +41,13 @@ class BearCartDataset(Dataset):
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {DEVICE} device")
 # Create dataloaders
-data_dir = os.path.join(sys.path[0], "data", "2023_10_12_14_52")
+data_dir = os.path.join(sys.path[0], "data", "2023_12_01_14_31")
 annotation_path = os.path.join(data_dir, "annotations.csv")
 image_dir = os.path.join(data_dir, "images/")
 dataset_all = BearCartDataset(annotation_path, image_dir)
 print("dataset total number of instances: ", len(dataset_all))
 all_size = len(dataset_all)
-train_size = round(all_size*0.9)
+train_size = round(all_size*0.925)
 test_size = all_size - train_size 
 print(f"train size: {train_size}, test size: {test_size}")
 # Load the datset (split into train and test)
